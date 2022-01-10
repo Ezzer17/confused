@@ -13,7 +13,6 @@ import (
 type PackageJSON struct {
 	Dependencies         map[string]string `json:"dependencies,omitempty"`
 	DevDependencies      map[string]string `json:"devDependencies,omitempty"`
-	PeerDependencies     map[string]string `json:"peerDependencies,omitempty"`
 	BundledDependencies  []string          `json:"bundledDependencies,omitempty"`
 	BundleDependencies   []string          `json:"bundleDependencies,omitempty"`
 	OptionalDependencies map[string]string `json:"optionalDependencies,omitempty"`
@@ -79,9 +78,6 @@ func (n *NPMLookup) ReadPackagesFromFile(filename string) error {
 		n.Packages = append(n.Packages, NPMPackage{pkgname, pkgversion})
 	}
 	for pkgname, pkgversion := range data.DevDependencies {
-		n.Packages = append(n.Packages, NPMPackage{pkgname, pkgversion})
-	}
-	for pkgname, pkgversion := range data.PeerDependencies {
 		n.Packages = append(n.Packages, NPMPackage{pkgname, pkgversion})
 	}
 	for pkgname, pkgversion := range data.OptionalDependencies {
