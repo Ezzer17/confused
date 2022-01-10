@@ -28,16 +28,16 @@ type NpmResponse struct {
 }
 
 type NpmResponseUnpublished struct {
-		Maintainers []struct {
-			Email string `json:"email"`
-			Name  string `json:"name"`
-		} `json:"maintainers"`
-		Name string `json:"name"`
-		Tags struct {
-			Latest string `json:"latest"`
-		} `json:"tags"`
-		Time     time.Time `json:"time"`
-		Versions []string  `json:"versions"`
+	Maintainers []struct {
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	} `json:"maintainers"`
+	Name string `json:"name"`
+	Tags struct {
+		Latest string `json:"latest"`
+	} `json:"tags"`
+	Time     time.Time `json:"time"`
+	Versions []string  `json:"versions"`
 }
 
 // NotAvailable returns true if the package has its all versions unpublished making it susceptible for takeover
@@ -53,7 +53,7 @@ type NPMLookup struct {
 }
 
 type NPMPackage struct {
-	Name string
+	Name    string
 	Version string
 }
 
@@ -100,21 +100,38 @@ func (n *NPMLookup) ReadPackagesFromFile(filename string) error {
 //
 // Returns a slice of strings with any npm packages not in the public npm package repository
 func (n *NPMLookup) PackagesNotInPublic() []string {
-	notavail := []string{}
+	type checkResult struct {
+		isPrivate bool
+		pkg       NPMPackage
+	}
+	results := make(chan checkResult)
 	for _, pkg := range n.Packages {
-		if n.localReference(pkg.Version) || n.urlReference(pkg.Version) || n.gitReference(pkg.Version) {
-			continue
-		}
-		if n.gitHubReference(pkg.Version) {
-			if !n.gitHubOrgExists(pkg.Version) {
-				notavail = append(notavail, pkg.Name)
-				continue
-			} else {
-				continue
+		go func(pkg NPMPackage) {
+			if n.localReference(pkg.Version) || n.urlReference(pkg.Version) || n.gitReference(pkg.Version) {
+				results <- checkResult{false, pkg}
+				return
 			}
-		}
-		if !n.isAvailableInPublic(pkg.Name, 0) {
-			notavail = append(notavail, pkg.Name)
+			if n.gitHubReference(pkg.Version) {
+				if !n.gitHubOrgExists(pkg.Version) {
+					results <- checkResult{true, pkg}
+					return
+				}
+				results <- checkResult{false, pkg}
+				return
+			}
+			if !n.isAvailableInPublic(pkg.Name, 0) {
+				results <- checkResult{true, pkg}
+				return
+			}
+			results <- checkResult{false, pkg}
+			return
+		}(pkg)
+	}
+	notavail := []string{}
+	for i := 0; i < len(n.Packages); i++ {
+		p := <-results
+		if p.isPrivate {
+			notavail = append(notavail, p.pkg.Name)
 		}
 	}
 	return notavail
