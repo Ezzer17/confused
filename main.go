@@ -13,7 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-//	"io/ioutil"
+
+	//	"io/ioutil"
 	"encoding/json"
 )
 
@@ -57,7 +58,7 @@ func main() {
 	}
 	outputPackages := removeSafe(resolver.PackagesNotInPublic(), safespaces)
 	if output != "" {
-		PrintToFile(outputPackages, output)
+		PrintToFile(outputPackages, output, filename)
 	} else {
 		PrintResult(outputPackages)
 	}
@@ -83,24 +84,30 @@ func PrintResult(notavail []string) {
 	os.Exit(1)
 }
 
-func PrintToFile(notavil []string, dst string) {
-	res, err := json.Marshal(notavil)
+func PrintToFilejnotavil []string, dst string, src string) {
+	out := struct {
+		filename string
+		Content  []string
+	}{
+		Filename: src,
+		Content:  notavil,
+	}
+	res, err := json.Marshal(out)
 	if err != nil {
 		panic(err)
 	}
 	f, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-	    panic(err)
-	    }
-	    defer f.Close()
-	    if _, err = f.WriteString(string(res)); err != nil {
-		        panic(err)
-		}
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(string(res)); err != nil {
+		panic(err)
+	}
 
 	os.Exit(0)
 
 }
-
 
 // removeSafe removes known-safe package names from the slice
 func removeSafe(packages []string, safespaces string) []string {
