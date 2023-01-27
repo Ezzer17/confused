@@ -84,9 +84,9 @@ func PrintResult(notavail []string) {
 	os.Exit(1)
 }
 
-func PrintToFilejnotavil []string, dst string, src string) {
+func PrintToFile(notavil []string, dst string, src string) {
 	out := struct {
-		filename string
+		Filename string
 		Content  []string
 	}{
 		Filename: src,
