@@ -13,6 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	//	"io/ioutil"
+	"encoding/json"
 )
 
 func main() {
@@ -20,8 +23,10 @@ func main() {
 	lang := ""
 	verbose := false
 	filename := ""
+	output := ""
 	safespaces := ""
 	flag.StringVar(&lang, "l", "npm", "Package repository system. Possible values: \"pip\", \"npm\", \"composer\", \"mvn\"")
+	flag.StringVar(&output, "o", "output", "output file")
 	flag.StringVar(&safespaces, "s", "", "Comma-separated list of known-secure namespaces. Supports wildcards")
 	flag.BoolVar(&verbose, "v", false, "Verbose output")
 	flag.Parse()
@@ -52,7 +57,11 @@ func main() {
 		os.Exit(1)
 	}
 	outputPackages := removeSafe(resolver.PackagesNotInPublic(), safespaces)
-	PrintResult(outputPackages)
+	if output != "" {
+		PrintToFile(outputPackages, output, filename)
+	} else {
+		PrintResult(outputPackages)
+	}
 }
 
 // Help outputs tool usage and help
@@ -73,6 +82,31 @@ func PrintResult(notavail []string) {
 		fmt.Printf(" [!] %s\n", n)
 	}
 	os.Exit(1)
+}
+
+func PrintToFile(notavil []string, dst string, src string) {
+	out := struct {
+		Filename string
+		Content  []string
+	}{
+		Filename: src,
+		Content:  notavil,
+	}
+	res, err := json.Marshal(out)
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(string(res)); err != nil {
+		panic(err)
+	}
+
+	os.Exit(0)
+
 }
 
 // removeSafe removes known-safe package names from the slice
